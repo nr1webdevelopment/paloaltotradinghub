@@ -5,7 +5,7 @@ import Image from 'next/image';
  * The split-panel shell used by both signin and register pages.
  * Renders the brand panel on the left and slot for form content on the right.
  */
-export function AuthShell({ children, activeTab }: { children: React.ReactNode; activeTab: 'signin' | 'register' }) {
+export function AuthShell({ children, activeTab }: { children: React.ReactNode; activeTab: 'signin' | 'register' | 'recovery' }) {
   return (
     <div
       className="grid md:grid-cols-[1.05fr_1fr] max-w-[1000px] w-full min-h-[600px] md:min-h-0 md:rounded-[22px] overflow-hidden md:border md:shadow-[0_30px_80px_-30px_rgba(0,0,0,.5)]"

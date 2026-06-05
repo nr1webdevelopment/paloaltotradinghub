@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import { signinAction, type ActionState } from '@/lib/auth-actions';
 
@@ -25,7 +26,16 @@ export function SigninForm() {
       </div>
 
       <div>
-        <label className="form-label" htmlFor="password">Password</label>
+        <div className="flex items-baseline justify-between">
+          <label className="form-label" htmlFor="password">Password</label>
+          <Link
+            href="/auth/forgot-password"
+            className="text-[12px] font-bold hover:underline"
+            style={{ color: 'var(--accent)' }}
+          >
+            Forgot password?
+          </Link>
+        </div>
         <input
           id="password"
           name="password"

@@ -2,8 +2,17 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { z } from 'zod';
 import { createServerSupabase } from '@/lib/supabase/server';
+
+/** Build an absolute origin like https://paloaltotradinghub.com or http://localhost:3000. */
+function siteOrigin() {
+  const h = headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000';
+  const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
+  return `${proto}://${host}`;
+}
 
 const SigninSchema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -159,5 +168,42 @@ export async function changePasswordAction(newPassword: string) {
   const supabase = createServerSupabase();
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) return { error: error.message };
+  return { ok: true };
+}
+
+/**
+ * Send a password-reset email. The link lands on /auth/callback, which
+ * exchanges the recovery code for a session, then forwards the user
+ * to /auth/reset-password where they can set a new password.
+ *
+ * We always return { ok: true } regardless of whether the email exists,
+ * so the form can't be used to enumerate registered accounts.
+ */
+export async function forgotPasswordAction(email: string) {
+  const parsed = z.string().email('Enter a valid email').safeParse(email);
+  if (!parsed.success) return { error: parsed.error.errors[0].message };
+
+  const supabase = createServerSupabase();
+  await supabase.auth.resetPasswordForEmail(parsed.data, {
+    redirectTo: `${siteOrigin()}/auth/callback?next=/auth/reset-password`,
+  });
+
+  return { ok: true };
+}
+
+/**
+ * Set a new password. Called from /auth/reset-password after the
+ * recovery session has been established via the callback route.
+ */
+export async function resetPasswordAction(newPassword: string) {
+  if (newPassword.length < 8) return { error: 'Password must be at least 8 characters' };
+
+  const supabase = createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Your reset link has expired. Request a new one.' };
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { error: error.message };
+
   return { ok: true };
 }
